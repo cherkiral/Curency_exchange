@@ -12,7 +12,19 @@ class CurrencyView(APIView):
             dest_cur = self.request.query_params['to']
             multiplier = self.request.query_params['value']
 
-            rate = forex_rate(base_cur, dest_cur, multiplier)
+            response = forex_rate(base_cur, dest_cur)
+
+            if response.status_code == 200:
+                json_response = response.json().get('data')
+                if not json_response:
+                    return Response({'error': 'apidown'}, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    if multiplier.isnumeric():
+                        rate = float(json_response[dest_cur]['value']) * float(multiplier)
+                    else:
+                        return Response({'error': 'value should be an integer'}, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'errors': response.json().get('errors')}, status=status.HTTP_400_BAD_REQUEST)
 
             context = {
                 'rate': rate,
